@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Power Loom Manager</title>
+<style>
+:root{box-sizing:border-box;--bg:#f6f5f1;--card:#fff;--tx:#1d2125;--mu:#6b7280;--bd:#e3e1da;--ac:#0f6e56;--ac2:#e8f3ef;--bad:#b3261e;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181a;--card:#1f2326;--tx:#eceae4;--mu:#9aa1a8;--bd:#33393d;--ac:#4cc3a0;--ac2:#1d3a31;--bad:#f2837b}}
+:root[data-theme="dark"]{--bg:#15181a;--card:#1f2326;--tx:#eceae4;--mu:#9aa1a8;--bd:#33393d;--ac:#4cc3a0;--ac2:#1d3a31;--bad:#f2837b}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:16px 16px 8px;max-width:980px;margin:auto}
+h1{font-size:20px;margin:0}header p{margin:2px 0 0;color:var(--mu);font-size:13px}
+nav{display:flex;gap:6px;padding:8px 16px;max-width:980px;margin:auto;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:2}
+nav button{flex:1;padding:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;font:inherit;font-weight:600;cursor:pointer}
+nav button.on{background:var(--ac);border-color:var(--ac);color:#fff}
+main{max-width:980px;margin:auto;padding:8px 16px 40px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
+.card h3{margin:0 0 10px;font-size:16px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+label{display:block;font-size:11.5px;color:var(--mu)}
+select,input{width:100%;padding:8px;margin-top:3px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
+.res{margin-top:12px;padding:10px;background:var(--ac2);border-radius:10px;font-size:13px;display:flex;flex-wrap:wrap;gap:6px 16px}
+.res b{color:var(--ac)}
+.btn{padding:9px 14px;border:1px solid var(--ac);background:var(--ac);color:#fff;border-radius:10px;font:inherit;font-weight:600;cursor:pointer}
+.btn.o{background:none;color:var(--bad);border-color:var(--bd);padding:5px 10px;font-size:12px}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px}
+.kpi div{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px}
+.kpi small{color:var(--mu);font-size:12px}.kpi strong{display:block;font-size:20px;margin-top:2px}
+.pos{color:var(--ac)}.neg{color:var(--bad)}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--bd);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--card)}
+tr.t td{font-weight:700;background:var(--ac2)}
+.bar{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:13px}
+.bar span{width:130px;flex:none}.bar i{display:block;height:10px;border-radius:5px;background:var(--ac)}.bar em{font-style:normal;color:var(--mu);white-space:nowrap}
+#pvw{position:fixed;inset:0;z-index:10;background:var(--bg);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.pvb{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;gap:8px;flex-wrap:wrap}
+#pvf{flex:1;width:100%;border:0;background:#fff}
+.bt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.note{font-size:12.5px;color:var(--mu);margin-top:8px}
+</style></head><body>
+<header><h1>🧵 Power Loom Manager</h1><p>Yarn consumption · monthly cost · profit per metre</p></header>
+<nav id="nav"></nav>
+<main id="m"></main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const LS='plm-v1';
+const def=()=>({s:{yarn:134,trans:5,wind:10,maint:20000,beam:800,knot:110,bund:70,beamT:1000,days:24},
+f:[{n:'38"',w:38,reed:44,pick:52,wc:20,fc:20,wcr:8,fcr:5,l:9,p:70,lab:3.5,sell:23.75,mb:360},
+{n:'54"',w:54,reed:44,pick:52,wc:20,fc:20,wcr:8,fcr:5,l:5,p:70,lab:3.5,sell:31.5,mb:300},
+{n:'56"',w:56,reed:44,pick:52,wc:20,fc:20,wcr:8,fcr:5,l:4,p:65,lab:4.5,sell:33,mb:300}]});
+let D;try{D=JSON.parse(localStorage.getItem(LS))}catch(e){}if(!D||!D.f)D=def();if(!D.x)D.x=[];
+const save=()=>{try{localStorage.setItem(LS,JSON.stringify(D))}catch(e){}};
+const n=(v,d=0)=>(isFinite(v)?v:0).toLocaleString('en-IN',{minimumFractionDigits:d,maximumFractionDigits:d});
+const mpk=c=>c*840*0.9144*2.20462; // metre per kg for a cotton count
+const FF=[['n','Name','text'],['w','Width (inch)'],['reed','Reed / inch'],['pick','Pick / inch'],['wc','Warp count'],['fc','Weft count'],['wcr','Warp crimp %'],['fcr','Weft crimp %'],['l','No. of looms'],['p','Prod / loom / day (m)'],['lab','Labour ₹/m'],['sell','Sell rate ₹/m'],['mb','Metres / bundle']];
+const SF=[['yarn','Yarn cost ₹/kg'],['trans','Yarn transport ₹/kg'],['wind','Warp winding ₹/kg'],['maint','Maintenance ₹/month'],['beam','Metres per beam'],['knot','Knotting ₹/beam'],['bund','Bundle transport ₹/bundle'],['beamT','Beam transport ₹/month'],['days','Working days / month']];
+function calc(){const S=D.s;const R=D.f.map(f=>{const wg=f.reed*f.w*(1+f.wcr/100)/mpk(f.wc)*1000,fg=f.pick*f.w*(1+f.fcr/100)/mpk(f.fc)*1000;return{f,wg,fg,g:wg+fg,m:f.l*f.p*S.days}});
+const T=R.reduce((a,r)=>a+r.m,0)||1;
+R.forEach(r=>{const m=r.m,kg=m*r.g/1000,sh=m/T;Object.assign(r,{beams:m/S.beam,kg,yarn:kg*S.yarn,trans:kg*S.trans,wind:m*r.wg/1000*S.wind,lab:m*r.f.lab,maint:S.maint*sh,cher:m/(r.f.mb||1)*S.bund,knot:m/S.beam*S.knot,beamT:S.beamT*sh});
+let ex=0;D.x.forEach((x,j)=>{const a=+x.amt||0,v=x.t=='m'?a*m:x.t=='kg'?a*kg:a*sh;r['x'+j]=v;ex+=v});r.tot=r.yarn+r.trans+r.wind+r.lab+r.maint+r.cher+r.knot+r.beamT+ex;r.rev=m*r.f.sell;r.pf=r.rev-r.tot});return R}
+let tab=0;const $=id=>document.getElementById(id);
+function nav(){$('nav').innerHTML=['Fabrics & Plan','Rates','Report'].map((t,i)=>`<button class="${i==tab?'on':''}" onclick="tab=${i};show()">${t}</button>`).join('')}
+function inp(k,l,v,t,a){return `<label>${l}<input ${a} data-k="${k}" type="${t=='text'?'text':'number'}" step="any" inputmode="${t=='text'?'text':'decimal'}" value="${v}"></label>`}
+function show(){nav();const m=$('m');
+if(tab==0){m.innerHTML=D.f.map((f,i)=>`<div class="card"><h3>Fabric ${f.n}<button class="btn o" onclick="del(${i})">Remove</button></h3><div class="g">${FF.map(([k,l,t])=>inp(k,l,f[k],t,`data-i="${i}"`)).join('')}</div><div class="res" id="r${i}"></div></div>`).join('')+'<button class="btn" onclick="add()">+ Add fabric size</button><p class="note">Warp = reed × width × (1+crimp). Weft = pick × width × (1+crimp). Both converted to grams per metre of fabric using yarn count.</p>';upd()}
+else if(tab==1){m.innerHTML=`<div class="card"><h3>Monthly rates &amp; costs</h3><div class="g">${SF.map(([k,l])=>inp(k,l,D.s[k],'num','data-s="1"')).join('')}</div></div>
+<div class="card"><h3>Extra expenses<button class="btn" onclick="addx()">+ Add expense</button></h3><div id="xl">${xr()}</div><p class="note">₹/month is shared across fabrics by metres produced. ₹/metre and ₹/kg yarn are charged per unit produced.</p></div>
+<button class="btn o" onclick="if(confirm('Reset everything to default values?')){D=def();save();show()}">Reset to defaults</button>`;
+}
+else rep()}
+function upd(){const R=calc();R.forEach((r,i)=>{const e=$('r'+i);if(e)e.innerHTML=`<span>Warp <b>${n(r.wg,2)}</b> g/m</span><span>Weft <b>${n(r.fg,2)}</b> g/m</span><span>Fabric <b>${n(r.g,2)}</b> g/m</span><span>Yarn <b>₹${n(r.g/1000*D.s.yarn,2)}</b>/m</span><span>Month <b>${n(r.m)}</b> m</span><span>Profit <b class="${r.pf<0?'neg':''}">₹${n(r.pf/(r.m||1),2)}</b>/m</span>`})}
+function rep(){const R=calc(),sum=k=>R.reduce((a,r)=>a+r[k],0),M=sum('m'),E=sum('tot'),V=sum('rev'),P=V-E;
+const rows=[['Yarn cost','yarn'],['Yarn transport','trans'],['Warp winding','wind'],['Labour','lab'],['Maintenance','maint'],['Bundle transport','cher'],['Knotting','knot'],['Beam transport','beamT'],...D.x.map((x,j)=>[x.n||'Extra','x'+j])];
+const H=`<tr><th></th>${R.map(r=>`<th>${r.f.n}</th>`).join('')}<th>Total</th></tr>`;
+const line=(l,k,d=0,c)=>`<tr${c?' class="t"':''}><td>${l}</td>${R.map(r=>`<td>${n(r[k],d)}</td>`).join('')}<td>${n(sum(k),d)}</td></tr>`;
+const pm=(l,fn,t)=>`<tr class="t"><td>${l}</td>${R.map(r=>`<td>${n(fn(r),2)}</td>`).join('')}<td>${n(t,2)}</td></tr>`;
+const mx=Math.max(...rows.map(([,k])=>sum(k)),1);
+$('m').innerHTML=`<div class="bt"><button class="btn" onclick="xl()">⬇ Excel</button><button class="btn" onclick="pv()">👁 Print preview</button><button class="btn" onclick="pr()">🖨 Print / PDF</button><span id="st" class="note"></span></div><div class="kpi"><div><small>Metres / month</small><strong>${n(M)}</strong></div><div><small>Revenue</small><strong>₹${n(V)}</strong></div><div><small>Total expenses</small><strong>₹${n(E)}</strong></div><div><small>Profit</small><strong class="${P<0?'neg':'pos'}">₹${n(P)}</strong></div><div><small>Margin</small><strong class="${P<0?'neg':'pos'}">${n(V?P/V*100:0,1)}%</strong></div><div><small>Yarn required</small><strong>${n(sum('kg'))} kg</strong></div></div>
+<div class="card"><h3>Monthly cost sheet (₹)</h3><div class="tw"><table>${H}${line('Metres produced','m')}${line('Beams required','beams',1)}${line('Yarn required (kg)','kg')}${rows.map(([l,k])=>line(l,k)).join('')}${line('Total expenses','tot',0,1)}${line('Revenue','rev')}${line('Profit','pf',0,1)}${pm('Expense ₹/m',r=>r.tot/(r.m||1),E/(M||1))}${pm('Profit ₹/m',r=>r.pf/(r.m||1),P/(M||1))}</table></div></div>
+<div class="card"><h3>Where the money goes</h3>${rows.map(([l,k])=>`<div class="bar"><span>${l}</span><i style="width:${sum(k)/mx*100*0.55}%"></i><em>₹${n(sum(k))} · ${n(E?sum(k)/E*100:0,1)}%</em></div>`).join('')}<p class="note">Winding is charged on warp yarn kg. Maintenance and beam transport are shared by metres produced.</p></div>`}
+function xr(){return D.x.length?D.x.map((x,i)=>`<div class="g" style="margin-bottom:10px;align-items:end">${inp('n','Expense name',x.n,'text',`data-x="${i}"`)}${inp('amt','Amount ₹',x.amt,'num',`data-x="${i}"`)}<label>Charged as<select data-k="t" data-x="${i}"><option value="month"${x.t=='month'?' selected':''}>₹ / month</option><option value="m"${x.t=='m'?' selected':''}>₹ / metre</option><option value="kg"${x.t=='kg'?' selected':''}>₹ / kg yarn</option></select></label><button class="btn o" onclick="delx(${i})">Remove</button></div>`).join(''):'<p class="note">No extra expenses yet.</p>'}
+function addx(){D.x.push({n:'',amt:0,t:'month'});save();show()}
+function delx(i){D.x.splice(i,1);save();show()}
+const r2=v=>typeof v=='number'?Math.round(v*100)/100:v;
+const esc=v=>String(v).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function tbl(){const R=calc(),sum=k=>R.reduce((a,r)=>a+r[k],0),M=sum('m')||1,E=sum('tot'),V=sum('rev');
+const L=(l,k)=>[l,...R.map(r=>r[k]),sum(k)];
+const it=[['Yarn cost','yarn'],['Yarn transport','trans'],['Warp winding','wind'],['Labour','lab'],['Maintenance','maint'],['Bundle transport','cher'],['Knotting','knot'],['Beam transport','beamT'],...D.x.map((x,j)=>[x.n||'Extra','x'+j])];
+return [['Item',...R.map(r=>r.f.n),'Total'],L('Metres produced','m'),L('Beams required','beams'),L('Yarn required (kg)','kg'),...it.map(([l,k])=>L(l,k)),L('Total expenses','tot'),L('Revenue','rev'),L('Profit','pf'),['Expense Rs/m',...R.map(r=>r.tot/(r.m||1)),E/M],['Profit Rs/m',...R.map(r=>r.pf/(r.m||1)),(V-E)/M]]}
+function fab(){return [['Fabric','Width','Reed','Pick','Warp count','Weft count','Warp crimp %','Weft crimp %','Warp g/m','Weft g/m','Fabric g/m','Yarn Rs/m','Looms','Prod/loom/day','Sell Rs/m','Labour Rs/m'],...calc().map(r=>{const f=r.f;return [f.n,f.w,f.reed,f.pick,f.wc,f.fc,f.wcr,f.fcr,r.wg,r.fg,r.g,r.g/1000*D.s.yarn,f.l,f.p,f.sell,f.lab]})]}
+function rts(){return [['Rate','Value'],...SF.map(([k,l])=>[l,D.s[k]]),...D.x.map(x=>['Extra: '+(x.n||'Extra')+' ('+({month:'Rs/month',m:'Rs/metre',kg:'Rs/kg yarn'}[x.t]||'')+')',+x.amt||0])]}
+const st=t=>{const e=$('st');if(e)e.textContent=t};
+async function dl(name,data){let d=null;try{d=window.claude&&await claude.use('downloads')}catch(e){}
+if(!d){const x=document.createElement('a');x.href=URL.createObjectURL(new Blob([data]));x.download=name;document.body.appendChild(x);x.click();x.remove();st('Saved ✓');return}
+try{await d.save({filename:name,data});st('Saved ✓')}catch(e){st(e.code=='declined'?'':'Could not save: '+e.message)}}
+function xl(){if(!window.XLSX){st('Excel library not loaded');return}
+const wb=XLSX.utils.book_new();[['Cost Sheet',tbl()],['Fabric Consumption',fab()],['Rates',rts()]].forEach(([nm,a])=>{const ws=XLSX.utils.aoa_to_sheet(a.map(r=>r.map(r2)));ws['!cols']=a[0].map((_,i)=>({wch:i?16:30}));XLSX.utils.book_append_sheet(wb,ws,nm)});
+dl('power-loom-report.xlsx',XLSX.write(wb,{type:'array',bookType:'xlsx'}))}
+function rh(a){const t=(a,h)=>`<h2>${h}</h2><table>`+a.map((r,i)=>'<tr>'+r.map((c,j)=>`<${i?'td':'th'}${j?' class="r"':''}>${typeof c=='number'?n(c,Math.abs(c)<1000?2:0):esc(c)}</${i?'td':'th'}>`).join('')+'</tr>').join('')+'</table>';
+return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Power Loom Report</title><style>@page{size:A4 landscape;margin:12mm}body{font:12px system-ui,sans-serif;color:#111}h1{font-size:18px;margin:0}h2{font-size:14px;margin:18px 0 6px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #bbb;padding:4px 7px;text-align:left}th{background:#e8f3ef}.r{text-align:right}</style></head><body><h1>Power Loom Report</h1><div>${new Date().toLocaleDateString('en-IN')}</div>${t(tbl(),'Monthly cost sheet (Rs)')}${t(fab(),'Fabric consumption')}${t(rts(),'Rates')}${a?'<script>onload=()=>setTimeout(()=>print(),300)<\/script>':''}</body></html>`}
+function pr(){dl('power-loom-report.html',rh(true))}
+function pv(){let o=$('pvw');if(!o){o=document.createElement('div');o.id='pvw';document.body.appendChild(o)}
+o.innerHTML=`<div class="pvb"><b>Print preview</b><span><button class="btn" onclick="pr()">⬇ Download for print</button> <button class="btn o" onclick="$('pvw').remove()">Close</button></span></div><iframe sandbox="" id="pvf"></iframe>`;$('pvf').srcdoc=rh(false)}
+function add(){D.f.push({n:'New',w:44,reed:44,pick:52,wc:20,fc:20,wcr:8,fcr:5,l:1,p:70,lab:3.5,sell:25,mb:300});save();show()}
+function del(i){if(D.f.length>1&&confirm('Remove this fabric?')){D.f.splice(i,1);save();show()}}
+$('m').addEventListener('input',e=>{const t=e.target,k=t.dataset.k;if(!k)return;const v=t.type=='number'?parseFloat(t.value)||0:t.value;
+if(t.dataset.x!==undefined)D.x[+t.dataset.x][k]=v;else if(t.dataset.s)D.s[k]=v;else if(t.dataset.i!==undefined)D.f[+t.dataset.i][k]=v;save();if(tab==0)upd()});
+show();
+</script></body></html>
